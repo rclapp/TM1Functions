@@ -15,11 +15,11 @@ logger.setLevel(logging.DEBUG)
 
 # create file handler which logs even debug messages
 fh = logging.FileHandler('ExecuteParallelTI.log')
-fh.setLevel(logging.DEBUG)
+fh.setLevel(logging.INFO)
 
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -69,13 +69,13 @@ def create_ti_instructions(csv_path):
 
 def execute_ti(tm1, process, parameters, key):
     try:
-        logger.info("#{} {}: Executing for {} on {}".format(key, process, parameters, tm1.server.get_server_name()))
+        logger.info("Row {} {}: Executing for {} on {}".format(key, process, parameters, tm1.server.get_server_name()))
         response = tm1.processes.execute(process, parameters)
-        return "#{} {}: Process Completed Successfully for {} on {}".format(key, process, parameters,
+        return "Row {} {}: Process Completed Successfully for {} on {}".format(key, process, parameters,
                                                                         tm1.server.get_server_name())
     except Exception as e:
         logger.error("Process Completed With Errors")
-        return "#{} {}: Produced Errors for {} on {} | {}".format(key, process, parameters,
+        return "Row {} {}: Produced Errors for {} on {} | {}".format(key, process, parameters,
                                                              tm1.server.get_server_name(), e._response)
 
 
@@ -95,6 +95,7 @@ def main():
         file_path = sys.argv[1]
     except:
         logger.fatal("No File Specified")
+
     if not os.path.isfile(file_path):
         logger.fatal("File not found, exiting")
 
@@ -105,7 +106,6 @@ def main():
         max_threads = default_maxthreads
         logger.warning("Max Parallel Threads Not Specified, Default: {}".format(default_max_threads))
 
-
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     config = configparser.ConfigParser()
@@ -114,14 +114,26 @@ def main():
     tis = create_ti_instructions(file_path)
     row_count = sum(1 for row in tis)
     logger.info("Reading file {}, {} lines read".format(file_path, row_count))
-
     logger.info("Maximum Parallel Threads: {}".format(max_threads))
-    with TM1Service(**config['tm1srv01']) as tm1:
-        logger.info("Connecting to {}".format(tm1.server.get_server_name()))
-        result = loop.run_until_complete(execute_parallel_ti(tm1, tis, max_threads))
-        tm1.logout()
-        logger.info("Logging Out")
-    loop.close()
+
+    try:
+        with TM1Service(**config['tm1srv01']) as tm1:
+            logger.info("Connecting to: {}".format(tm1.server.get_server_name()))
+            logger.info("Starting Processes found in: {}".format(file_path))
+            start_time = time.clock()
+            result = loop.run_until_complete(execute_parallel_ti(tm1, tis, max_threads))
+            tm1.logout()
+            logger.info("Logging Out")
+            end_time = time.clock()
+            elapsed_time = end_time - start_time
+            logger.info("Total Time To Complete {} Processes: {}". Format(row_count, elapsed_time))
+            loop.close()
+
+    except Exception as e:
+        logging.fatal("Unable to Connect to TM1")
+        logging.fatal("Connection Error: {}". format(e))
+
+
 
 if __name__ == '__main__':
     main()

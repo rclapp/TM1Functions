@@ -42,4 +42,12 @@ def element_is_ancestor(tm1, dimension, hierarchy, ancestor, test_element):
     else:
         return False
 
+def test_connection(tm1):
+        try:
+            tm1.connection.is_connected()
+            return True
+        except Exception as e:
+            logging.fatal("Unable to Connect to TM1: {}".format(e._response))
+            return False
+
 
