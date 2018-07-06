@@ -2,7 +2,7 @@ import asyncio
 import time
 from concurrent.futures import ThreadPoolExecutor
 from TM1py.Services import TM1Service
-import pandas as pd
+import copy
 import csv
 import configparser
 import logging
@@ -36,7 +36,6 @@ class TICommand():
         self.process = process
         self.parameters = parameters
         self.key = key
-
 
 
 def create_ti_instructions(csv_path):
@@ -92,7 +91,12 @@ async def execute_parallel_ti(tm1, commands, max_threads):
 
 def main():
     try:
-        file_path = sys.argv[1]
+        tm1_instance = sys.argv[1]
+    except:
+        logger.fatal("No Instance Specified")
+
+    try:
+        file_path = sys.argv[2]
     except:
         logger.fatal("No File Specified")
 
@@ -101,7 +105,7 @@ def main():
 
     default_max_threads = 5
     try:
-        max_threads = int(sys.argv[2])
+        max_threads = int(sys.argv[3])
     except:
         max_threads = default_maxthreads
         logger.warning("Max Parallel Threads Not Specified, Default: {}".format(default_max_threads))
@@ -117,8 +121,8 @@ def main():
     logger.info("Maximum Parallel Threads: {}".format(max_threads))
 
     try:
-        
-        with TM1Service(**config['tm1srv01']) as tm1:
+
+        with TM1Service(**config[tm1_instance]) as tm1:
             logger.info("Connecting to: {}".format(tm1.server.get_server_name()))
             logger.info("Starting Processes found in: {}".format(file_path))
             start_time = time.clock()
