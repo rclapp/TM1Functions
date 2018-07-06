@@ -117,6 +117,7 @@ def main():
     logger.info("Maximum Parallel Threads: {}".format(max_threads))
 
     try:
+        
         with TM1Service(**config['tm1srv01']) as tm1:
             logger.info("Connecting to: {}".format(tm1.server.get_server_name()))
             logger.info("Starting Processes found in: {}".format(file_path))
